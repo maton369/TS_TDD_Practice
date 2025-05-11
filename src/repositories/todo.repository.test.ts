@@ -63,4 +63,44 @@ describe('TodoRepository', () => {
             expect(todo.description).toBe('Test Description');
         });
     });
+
+    describe('findById', () => {
+        it('returns todo when exists', async () => {
+            // テスト用のTodoを作成
+            const created = await repository.create({
+                title: 'Find Me'
+            });
+
+            // 作成したTodoをIDで検索
+            const found = await repository.findById(created.id);
+            
+            // 検索結果が作成したTodoと一致することを確認
+            expect(found).toEqual(created);
+        });
+
+        it('returns null when todo does not exist', async () => {
+            const found = await repository.findById('non-existent-id');
+            expect(found).toBeNull();
+        });
+    });
+
+    describe('findAll', () => {
+    it('returns empty array when no todos exist', async () => {
+        const todos = await repository.findAll();
+        expect(todos).toEqual([]);
+    });
+
+    it('returns all todos', async () => {
+        // テスト用のTodoを2件作成
+        const todo1 = await repository.create({ title: 'Todo 1' });
+        const todo2 = await repository.create({ title: 'Todo 2' });
+
+        const todos = await repository.findAll();
+        
+        // 件数の確認
+        expect(todos).toHaveLength(2);
+        // 作成したTodoが含まれていることを確認
+        expect(todos).toEqual(expect.arrayContaining([todo1, todo2]));
+    });
+});
 });

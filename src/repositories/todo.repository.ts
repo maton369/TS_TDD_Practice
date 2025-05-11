@@ -27,4 +27,15 @@ export class TodoRepository {
         this.todos.set(todo.id, todo);
         return todo;
     }
+
+    async findById(id: string): Promise<Todo | null> {
+        // Mapから指定されたIDのTodoを取得
+        // 存在しない場合はnullを返す
+        return this.todos.get(id) || null;
+    }
+
+    async findAll(): Promise<Todo[]> {
+        // Mapの値（Todo）を配列として返す
+        return Array.from(this.todos.values());
+    }
 }
