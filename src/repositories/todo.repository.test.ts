@@ -1,6 +1,7 @@
 import { TodoRepository } from './todo.repository';
-import { CreateTodoDTO, Todo } from '../types';
+import { CreateTodoDTO, Todo, UpdateTodoDTO } from '../types';
 import { TodoValidationError } from '../errors/todo.errors';
+import { wait } from '../test-utils/helper';
 
 describe('TodoRepository', () => {
     let repository: TodoRepository;
@@ -102,5 +103,73 @@ describe('TodoRepository', () => {
         // 作成したTodoが含まれていることを確認
         expect(todos).toEqual(expect.arrayContaining([todo1, todo2]));
     });
-});
+  });
+
+  describe('update', () => {
+        it('updates todo fields correctly', async () => {
+            // テスト用のTodoを作成
+            const todo = await repository.create({
+                title: 'Original Title',
+                description: 'Original Description'
+            });
+
+            // updatedAtの比較テストのため、
+            // 意図的に時間差を作る
+            await wait();
+
+            // 更新用のDTOを作成
+            const updateDto: UpdateTodoDTO = {
+                title: 'Updated Title',
+                description: 'Updated Description',
+                completed: true
+            };
+
+            // Todoを更新
+            const updated = await repository.update(todo.id, updateDto);
+
+            // 更新結果の検証
+            expect(updated.title).toBe(updateDto.title);
+            expect(updated.description).toBe(updateDto.description);
+            expect(updated.completed).toBe(true);
+            expect(updated.updatedAt.getTime()).toBeGreaterThan(todo.updatedAt.getTime());
+            expect(updated.id).toBe(todo.id);// IDは変更されないことを確認
+        });
+
+        it('maintains unchanged fields', async () => {
+            // 元のTodoを作成
+            const todo = await repository.create({
+                title: 'Original Title',
+                description: 'Original Description'
+            });
+
+            await wait();
+
+            // タイトルのみを更新
+            const updated = await repository.update(todo.id, {
+                title: 'Updated Title'
+            });
+
+            // 説明文が維持されていることを確認
+            expect(updated.title).toBe('Updated Title');
+            expect(updated.description).toBe('Original Description');
+            expect(updated.updatedAt.getTime()).toBeGreaterThan(todo.updatedAt.getTime());
+        });
+
+        it('throws error when todo does not exist', async () => {
+            await expect(
+                repository.update('non-existent-id', { title: 'New Title' })
+            ).rejects.toThrow('Todo not found');
+        });
+
+        it('applies validation rules to updated fields', async () => {
+            const todo = await repository.create({
+                title: 'Original Title'
+            });
+
+            // 空白のタイトルでの更新を試みる
+            await expect(
+                repository.update(todo.id, { title: '   ' })
+            ).rejects.toThrow('Title cannot be empty');
+        });
+    });
 });

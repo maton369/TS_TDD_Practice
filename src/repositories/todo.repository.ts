@@ -1,5 +1,5 @@
 // src/repositories/todo.repository.ts
-import { Todo, CreateTodoDTO } from '../types';
+import { Todo, CreateTodoDTO, UpdateTodoDTO } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { TodoValidationError } from '../errors/todo.errors';
 
@@ -37,5 +37,32 @@ export class TodoRepository {
     async findAll(): Promise<Todo[]> {
         // Mapの値（Todo）を配列として返す
         return Array.from(this.todos.values());
+    }
+
+    async update(id: string, dto: UpdateTodoDTO): Promise<Todo> {
+        // 更新対象のTodoを検索
+        const existingTodo = await this.findById(id);
+        if (!existingTodo) {
+            throw new TodoValidationError('Todo not found');
+        }
+
+        // タイトルのバリデーション
+        const title = dto.title?.trim() ?? existingTodo.title;
+        if (!title) {
+            throw new TodoValidationError('Title cannot be empty');
+        }
+
+        // 更新するフィールドを設定
+        const updatedTodo: Todo = {
+            ...existingTodo,                    // 既存のフィールドを展開
+            title,                              // バリデーション済みのタイトル
+            description: dto.description?.trim() ?? existingTodo.description,
+            completed: dto.completed ?? existingTodo.completed,
+            updatedAt: new Date()              // 更新日時は必ず新しく
+        };
+
+        // 更新されたTodoを保存
+        this.todos.set(id, updatedTodo);
+        return updatedTodo;
     }
 }
