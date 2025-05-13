@@ -172,4 +172,55 @@ describe('TodoRepository', () => {
             ).rejects.toThrow('Title cannot be empty');
         });
     });
+
+    describe('delete', () => {
+        it('deletes existing todo', async () => {
+            // 削除対象のTodoを作成
+            const todo = await repository.create({
+                title: 'Delete Me'
+            });
+
+            // Todoを削除
+            await repository.delete(todo.id);
+
+            // 削除したTodoが取得できないことを確認
+            const found = await repository.findById(todo.id);
+            expect(found).toBeNull();
+        });
+
+        it('throws error when todo does not exist', async () => {
+            // 存在しないIDでの削除を試みる
+            await expect(
+                repository.delete('non-existent-id')
+            ).rejects.toThrow('Todo not found');
+        });
+
+        it('does not affect other todos', async () => {
+            // 2つのTodoを作成
+            const todo1 = await repository.create({ title: 'Todo 1' });
+            const todo2 = await repository.create({ title: 'Todo 2' });
+
+            // todo1を削除
+            await repository.delete(todo1.id);
+
+            // todo2は残っていることを確認
+            const remainingTodos = await repository.findAll();
+            expect(remainingTodos).toHaveLength(1);
+            expect(remainingTodos[0]).toEqual(todo2);
+        });
+
+        it('allows creation after deletion with same title', async () => {
+            // 最初のTodoを作成して削除
+            const todo1 = await repository.create({ title: 'Recycled Title' });
+            await repository.delete(todo1.id);
+
+            // 同じタイトルで新しいTodoを作成
+            const todo2 = await repository.create({ title: 'Recycled Title' });
+
+            // 新しいTodoが正しく作成されていることを確認
+            const found = await repository.findById(todo2.id);
+            expect(found).toEqual(todo2);
+            expect(found?.id).not.toBe(todo1.id);
+        });
+    });
 });

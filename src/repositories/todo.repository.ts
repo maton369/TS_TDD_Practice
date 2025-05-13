@@ -65,4 +65,15 @@ export class TodoRepository {
         this.todos.set(id, updatedTodo);
         return updatedTodo;
     }
+
+    async delete(id: string): Promise<void> {
+        // 削除対象のTodoが存在するか確認
+        const todo = await this.findById(id);
+        if (!todo) {
+            throw new TodoValidationError('Todo not found');
+        }
+
+        // Todoを削除
+        this.todos.delete(id);
+    }
 }
