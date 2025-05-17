@@ -20,3 +20,9 @@ export interface UpdateTodoDTO {
     description?: string;// 更新したいフィールドのみ
     completed?: boolean; // 指定可能
 }
+
+export interface TodoSearchParams {
+    title?: string;      // タイトルでの部分一致検索
+    description?: string;// 説明文での部分一致検索
+    completed?: boolean; // 完了状態での検索
+}

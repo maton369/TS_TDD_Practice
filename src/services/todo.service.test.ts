@@ -12,10 +12,14 @@ describe('TodoService', () => {
         repository = new TodoRepository();
         service = new TodoService(repository);
 
-        await service.createTodo({
-            title: 'Original Title',
-            description: 'Original Description'
+        await service.createTodo({ title: 'Shopping', description: 'Buy groceries' });
+        await service.createTodo({ title: 'Coding', description: 'Implement search' });
+        await service.createTodo({ title: 'Exercise', description: 'Go to gym' });
+        const completedTodo = await service.createTodo({ 
+            title: 'Reading', 
+            description: 'Read book' 
         });
+        await service.updateTodo(completedTodo.id, { completed: true });
     });
 
     describe('createTodo', () => {
@@ -111,6 +115,54 @@ describe('TodoService', () => {
                     description: 'a'.repeat(501) 
                 })
             ).rejects.toThrow('Description cannot exceed 500 characters');
+        });
+    });
+
+    describe('findTodos', () => {
+        it('finds todos by title search', async () => {
+            const todos = await service.findTodos({ title: 'ing' });
+            
+            expect(todos).toHaveLength(3);
+            expect(todos.map(t => t.title)).toEqual(
+                expect.arrayContaining(['Shopping', 'Coding', 'Reading'])
+            );
+        });
+
+        it('finds todos by completion status', async () => {
+            const completed = await service.findTodos({ completed: true });
+            expect(completed).toHaveLength(1);
+            expect(completed[0].title).toBe('Reading');
+
+            const incomplete = await service.findTodos({ completed: false });
+            expect(incomplete).toHaveLength(3);
+        });
+
+        it('combines search criteria', async () => {
+            const todos = await service.findTodos({
+                title: 'ing',
+                completed: false
+            });
+
+            expect(todos).toHaveLength(2);
+            expect(todos.map(t => t.title)).toEqual(
+                expect.arrayContaining(['Shopping', 'Coding'])
+            );
+        });
+
+        it('returns empty array when no matches found', async () => {
+            const todos = await service.findTodos({ 
+                title: 'nonexistent' 
+            });
+            expect(todos).toHaveLength(0);
+        });
+
+        it('performs case-insensitive search', async () => {
+            const upperCase = await service.findTodos({ title: 'SHOPPING' });
+            const lowerCase = await service.findTodos({ title: 'shopping' });
+            
+            expect(upperCase).toHaveLength(1);
+            expect(lowerCase).toHaveLength(1);
+            expect(upperCase[0]).toEqual(lowerCase[0]);
         });
     });
 });
