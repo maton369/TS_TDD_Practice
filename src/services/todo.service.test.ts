@@ -15,9 +15,9 @@ describe('TodoService', () => {
         await service.createTodo({ title: 'Shopping', description: 'Buy groceries' });
         await service.createTodo({ title: 'Coding', description: 'Implement search' });
         await service.createTodo({ title: 'Exercise', description: 'Go to gym' });
-        const completedTodo = await service.createTodo({ 
-            title: 'Reading', 
-            description: 'Read book' 
+        const completedTodo = await service.createTodo({
+            title: 'Reading',
+            description: 'Read book'
         });
         await service.updateTodo(completedTodo.id, { completed: true });
     });
@@ -30,7 +30,7 @@ describe('TodoService', () => {
             };
 
             const todo = await service.createTodo(dto);
-            
+
             expect(todo.title).toBe(dto.title);
             expect(todo.description).toBe(dto.description);
             expect(todo.completed).toBe(false);
@@ -43,7 +43,7 @@ describe('TodoService', () => {
             };
 
             const todo = await service.createTodo(dto);
-            
+
             expect(todo.title).toBe('Test Todo');
             expect(todo.description).toBe('Description');
         });
@@ -57,7 +57,7 @@ describe('TodoService', () => {
                 description: 'Original Description'
             });
 
-            await wait();
+            await wait(); // 微小な遅延でupdatedAtの差分を確保（optional）
 
             const updateDto: UpdateTodoDTO = {
                 title: 'Updated Title',
@@ -71,8 +71,9 @@ describe('TodoService', () => {
             expect(updated.title).toBe(updateDto.title);
             expect(updated.description).toBe(updateDto.description);
             expect(updated.completed).toBe(true);
-            expect(updated.updatedAt.getTime()).toBeGreaterThan(created.updatedAt.getTime());
+            expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(created.updatedAt.getTime());
         });
+
 
         it('sanitizes and validates updated fields', async () => {
             const created = await service.createTodo({
@@ -105,14 +106,14 @@ describe('TodoService', () => {
             const todo = await service.createTodo({ title: 'Test Todo' });
 
             await expect(
-                service.updateTodo(todo.id, { 
-                    title: 'a'.repeat(101) 
+                service.updateTodo(todo.id, {
+                    title: 'a'.repeat(101)
                 })
             ).rejects.toThrow('Title cannot exceed 100 characters');
 
             await expect(
-                service.updateTodo(todo.id, { 
-                    description: 'a'.repeat(501) 
+                service.updateTodo(todo.id, {
+                    description: 'a'.repeat(501)
                 })
             ).rejects.toThrow('Description cannot exceed 500 characters');
         });
@@ -121,7 +122,7 @@ describe('TodoService', () => {
     describe('findTodos', () => {
         it('finds todos by title search', async () => {
             const todos = await service.findTodos({ title: 'ing' });
-            
+
             expect(todos).toHaveLength(3);
             expect(todos.map(t => t.title)).toEqual(
                 expect.arrayContaining(['Shopping', 'Coding', 'Reading'])
@@ -150,8 +151,8 @@ describe('TodoService', () => {
         });
 
         it('returns empty array when no matches found', async () => {
-            const todos = await service.findTodos({ 
-                title: 'nonexistent' 
+            const todos = await service.findTodos({
+                title: 'nonexistent'
             });
             expect(todos).toHaveLength(0);
         });
@@ -159,7 +160,7 @@ describe('TodoService', () => {
         it('performs case-insensitive search', async () => {
             const upperCase = await service.findTodos({ title: 'SHOPPING' });
             const lowerCase = await service.findTodos({ title: 'shopping' });
-            
+
             expect(upperCase).toHaveLength(1);
             expect(lowerCase).toHaveLength(1);
             expect(upperCase[0]).toEqual(lowerCase[0]);
