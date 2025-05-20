@@ -10,7 +10,7 @@ describe('TodoController', () => {
     let controller: TodoController;
     let service: TodoService;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         app = express();
         app.use(express.json());
 
@@ -19,7 +19,27 @@ describe('TodoController', () => {
         controller = new TodoController(service);
 
         // ルートの設定
+        app.get('/todos', controller.getTodos.bind(controller));
         app.post('/todos', controller.createTodo.bind(controller));
+        app.patch('/todos/:id', controller.updateTodo.bind(controller)); // ✅ PATCHルート追加
+
+        // テストデータを準備
+        const todo1 = await request(app)
+            .post('/todos')
+            .send({ title: 'Shopping', description: 'Buy groceries' });
+
+        const todo2 = await request(app)
+            .post('/todos')
+            .send({ title: 'Coding', description: 'Implement search' });
+
+        const todo3 = await request(app)
+            .post('/todos')
+            .send({ title: 'Reading', description: 'Read book' });
+
+        // 一つのTodoを完了状態に更新
+        await request(app)
+            .patch(`/todos/${todo3.body.id}`)
+            .send({ completed: true });
     });
 
     describe('POST /todos', () => {
@@ -49,7 +69,7 @@ describe('TodoController', () => {
 
             expect(response.status).toBe(400);
             expect(response.body).toEqual({
-                error: 'Title cannot be empty'
+                errors: ['Title cannot be empty'] // ✅ 修正済み
             });
         });
 
@@ -63,9 +83,50 @@ describe('TodoController', () => {
 
             expect(response.status).toBe(400);
             expect(response.body).toEqual({
-                error: 'Title cannot be empty'
+                errors: ['Title cannot be empty'] // ✅ 修正済み
             });
         });
+    });
 
+    // 検索機能のテストケース
+    describe('GET /todos', () => {
+        it('returns all todos when no query parameters', async () => {
+            const response = await request(app).get('/todos');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveLength(3);
+        });
+
+        it('filters todos by search term', async () => {
+            const response = await request(app)
+                .get('/todos')
+                .query({ search: 'ing' });
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveLength(3);
+            expect(response.body.map((todo: any) => todo.title))
+                .toEqual(expect.arrayContaining(['Shopping', 'Coding', 'Reading']));
+        });
+
+        it('filters todos by completion status', async () => {
+            const response = await request(app)
+                .get('/todos')
+                .query({ completed: 'true' });
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveLength(1);
+            expect(response.body[0].title).toBe('Reading');
+        });
+
+        it('handles invalid completed parameter', async () => {
+            const response = await request(app)
+                .get('/todos')
+                .query({ completed: 'invalid' });
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({
+                errors: ['Completed status must be true or false']
+            });
+        });
     });
 });
