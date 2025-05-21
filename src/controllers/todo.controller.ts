@@ -59,15 +59,34 @@ export class TodoController {
 
     async updateTodo(req: Request, res: Response): Promise<void> {
         try {
-            const updated = await this.service.updateTodo(
-                req.params.id,
-                req.body as UpdateTodoDTO
-            );
-            res.status(200).json(updated);
+            // バリデーション結果のチェック
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    errors: errors.array().map(err => err.msg)
+                });
+                return;
+            }
+
+            try {
+                const todo = await this.service.updateTodo(
+                    req.params.id,
+                    req.body
+                );
+                res.json(todo);
+            } catch (error) {
+                if (error instanceof Error) {
+                    if (error.message === 'Todo not found') {
+                        res.status(404).json({ errors: [error.message] });
+                        return;
+                    }
+                    res.status(400).json({ errors: [error.message] });
+                } else {
+                    throw error; // 予期せぬエラーは外側のcatchで処理
+                }
+            }
         } catch (error) {
-            res.status(400).json({
-                errors: [error instanceof Error ? error.message : 'Unknown error']
-            });
+            res.status(500).json({ errors: ['Internal server error'] });
         }
     }
 }

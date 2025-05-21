@@ -129,4 +129,90 @@ describe('TodoController', () => {
             });
         });
     });
+
+    describe('PATCH /todos/:id', () => {
+        let todoId: string;
+
+        beforeEach(async () => {
+            // テスト用のTodoを作成
+            const response = await request(app)
+                .post('/todos')
+                .send({ title: 'Original Title' });
+            todoId = response.body.id;
+        });
+
+        it('updates todo with valid input', async () => {
+            const response = await request(app)
+                .patch(`/todos/${todoId}`)
+                .send({
+                    title: 'Updated Title',
+                    description: 'Updated Description',
+                    completed: true
+                });
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                title: 'Updated Title',
+                description: 'Updated Description',
+                completed: true
+            });
+        });
+
+        it('returns 404 when todo not found', async () => {
+            const response = await request(app)
+                .patch('/todos/non-existent-id')
+                .send({ title: 'Updated Title' });
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({
+                errors: ['Todo not found']
+            });
+        });
+
+        it('handles validation errors', async () => {
+            const response = await request(app)
+                .patch(`/todos/${todoId}`)
+                .send({ title: '' });
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({
+                errors: ['Title must not be empty']
+            });
+        });
+
+        it('allows partial updates', async () => {
+            // まず説明文を追加
+            await request(app)
+                .patch(`/todos/${todoId}`)
+                .send({ description: 'First Description' });
+
+            // タイトルのみを更新
+            const response = await request(app)
+                .patch(`/todos/${todoId}`)
+                .send({ title: 'Updated Title' });
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                title: 'Updated Title',
+                description: 'First Description'  // 説明文が維持されていることを確認
+            });
+        });
+
+        it('prevents updating completed todo', async () => {
+            // Todoを完了状態に更新
+            await request(app)
+                .patch(`/todos/${todoId}`)
+                .send({ completed: true });
+
+            // 完了済みTodoの更新を試みる
+            const response = await request(app)
+                .patch(`/todos/${todoId}`)
+                .send({ title: 'New Title' });
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({
+                errors: ['Cannot update completed todo']
+            });
+        });
+    });
 });
