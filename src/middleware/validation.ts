@@ -1,5 +1,5 @@
 // src/middleware/validation.ts
-import { body, ValidationChain } from 'express-validator';
+import { body, query, ValidationChain } from 'express-validator';
 
 export const createTodoValidation: ValidationChain[] = [
     // titleのバリデーション
@@ -32,4 +32,16 @@ export const updateTodoValidation: ValidationChain[] = [
         .optional()
         .isBoolean()
         .withMessage('Completed must be a boolean value')
+];
+
+export const getTodosValidation: ValidationChain[] = [
+    query('search')
+        .optional()
+        .isString()
+        .withMessage('Search must be a string'),
+
+    query('completed')
+        .optional()
+        .isIn(['true', 'false'])
+        .withMessage('Completed status must be true or false'),
 ];
